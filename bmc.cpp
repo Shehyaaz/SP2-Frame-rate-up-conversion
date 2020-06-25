@@ -13,7 +13,7 @@
 #include "opencv2/imgproc.hpp"
 #include <iostream>
 #include "constants.hpp"
-#include "opencv_methods.hpp";
+#include "opencv_methods.hpp"
 
 using namespace cv;
 using namespace std;
@@ -22,18 +22,30 @@ class BlockMatchingCorrelation
 {
     // variable declarations
     vector<Mat> images;
+    vector<vector<Point2d>> globalRegionMV;
+    vector<vector<Point2d>> localRegionMV;
+    vector<vector<Point2d>> blockMV;
 
 public:
     // function declarations
     BlockMatchingCorrelation()
+        : globalRegionMV(NUM_GR),
+          localRegionMV(NUM_LR),
+          blockMV(NUM_BLOCKS)
     {
         // initialization of variables
     }
-    void readImg(vector<Mat> &images);
-    vector<Point2d> customisedPhaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response);
+    void readImg();
+    vector<Point2d> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response);
+    vector<Mat> divideIntoGlobal(Mat inpImg);
+    vector<Mat> divideIntoLocal(Mat inpImg);
+    vector<Mat> divideIntoBlocks(Mat inpImg);
+    void BMC(Mat prev, Mat curr);
+    Point2d blockMatching(vector<Point2d> &candidateMV);
+    void interpolate();
 };
 
-void BlockMatchingCorrelation::readImg(vector<Mat> &images)
+void BlockMatchingCorrelation::readImg()
 {
     /* reads the images from the video folder */
     vector<cv::String> fn;
@@ -44,7 +56,7 @@ void BlockMatchingCorrelation::readImg(vector<Mat> &images)
         images.push_back(imread(fn[i], IMREAD_GRAYSCALE));
 }
 
-vector<Point2d> BlockMatchingCorrelation::customisedPhaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response)
+vector<Point2d> BlockMatchingCorrelation::phaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response)
 {
     /* performs customised phase plane correlation on the input frames */
 
@@ -110,21 +122,87 @@ vector<Point2d> BlockMatchingCorrelation::customisedPhaseCorr(InputArray _src1, 
 
     // locate the highest peak
     Point peakLoc;
-    // TODO : change this part to return two peak locations
-    /*minMaxLoc(C, NULL, NULL, NULL, &peakLoc);
+    // return two peak locations
+    minMaxLoc(C, NULL, NULL, NULL, &peakLoc);
 
     // get the phase shift with sub-pixel accuracy, 5x5 window seems about right here...
-    Point2d t;
-    t = weightedCentroid(C, peakLoc, Size(5, 5), response);
+    Point2d t1, t2;
+    t1 = weightedCentroid(C, peakLoc, Size(5, 5), response);
+    C.at<float>(peakLoc) = 0;                 // set the value at peakLoc to 0
+    minMaxLoc(C, NULL, NULL, NULL, &peakLoc); // find second peakLoc
+    t2 = weightedCentroid(C, peakLoc, Size(5, 5), response);
 
     // max response is M*N (not exactly, might be slightly larger due to rounding errors)
-    if(response)
-        *response /= M*N;
+    if (response)
+        *response /= M * N;
 
     // adjust shift relative to image center...
     Point2d center((double)padded1.cols / 2.0, (double)padded1.rows / 2.0);
 
-    return (center - t);*/
+    return {(center - t1), (center - t2)};
+}
+
+vector<Mat> BlockMatchingCorrelation::divideIntoGlobal(Mat inpImg)
+{
+    vector<Mat> globalRegions(NUM_GR);
+    Size globalRegionSize(GR_WIDTH, GR_HEIGHT);
+    for (int y = 0; y < inpImg.rows - GR_HEIGHT; y += globalRegionSize.height)
+    {
+        for (int x = 0; x < inpImg.cols - GR_WIDTH; x += inpImg.cols - GR_WIDTH)
+        {
+            Rect rect = Rect(x, y, globalRegionSize.width, globalRegionSize.height);
+            globalRegions.push_back(Mat(inpImg, rect));
+        }
+    }
+    Rect rect = Rect(inpImg.cols - GR_WIDTH, inpImg.rows - GR_HEIGHT, globalRegionSize.width, globalRegionSize.height);
+    globalRegions.push_back(Mat(inpImg, rect));
+    return globalRegions;
+}
+
+vector<Mat> BlockMatchingCorrelation::divideIntoLocal(Mat inpImg)
+{
+    vector<Mat> localRegions(NUM_LR);
+    Size localRegionSize(LR_WIDTH, LR_HEIGHT);
+    for (int y = 0; y < inpImg.rows - LR_HEIGHT; y += localRegionSize.height)
+    {
+        for (int x = 0; x < inpImg.cols - LR_WIDTH; x += localRegionSize.width)
+        {
+            Rect rect = Rect(x, y, localRegionSize.width, localRegionSize.height);
+            localRegions.push_back(Mat(inpImg, rect));
+        }
+    }
+    Rect rect = Rect(inpImg.cols - LR_WIDTH, inpImg.rows - LR_HEIGHT, localRegionSize.width, localRegionSize.height);
+    localRegions.push_back(Mat(inpImg, rect));
+    return localRegions;
+}
+
+vector<Mat> BlockMatchingCorrelation::divideIntoBlocks(Mat inpImg)
+{
+    vector<Mat> blockRegions(NUM_BLOCKS);
+    Size blockRegionSize(BLOCK_SIZE, BLOCK_SIZE);
+    for (int y = 0; y < inpImg.rows - BLOCK_SIZE; y += blockRegionSize.height)
+    {
+        for (int x = 0; x < inpImg.cols - BLOCK_SIZE; x += blockRegionSize.width)
+        {
+            Rect rect = Rect(x, y, blockRegionSize.width, blockRegionSize.height);
+            blockRegions.push_back(Mat(inpImg, rect));
+        }
+    }
+    Rect rect = Rect(inpImg.cols - BLOCK_SIZE, inpImg.rows - BLOCK_SIZE, blockRegionSize.width, blockRegionSize.height);
+    blockRegions.push_back(Mat(inpImg, rect));
+    return blockRegions;
+}
+
+void BlockMatchingCorrelation::BMC(Mat prev, Mat curr)
+{
+}
+
+Point2d BlockMatchingCorrelation::blockMatching(vector<Point2d> &candidateMV)
+{
+}
+
+void BlockMatchingCorrelation::interpolate()
+{
 }
 
 int main(int argc, char **argv)

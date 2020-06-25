@@ -24,3 +24,15 @@
 #ifndef BLOCK_SIZE
 #define BLOCK_SIZE 32
 #endif
+// number of global regions
+#ifndef NUM_GR
+#define NUM_GR 4
+#endif
+// number of local regions
+#ifndef NUM_LR
+#define NUM_LR 72
+#endif
+// number of blocks
+#ifndef NUM_BLOCKS
+#define NUM_BLOCKS 2025 // (1920*1080)/(BLOCK_SIZE*BLOCK_SIZE)
+#endif
