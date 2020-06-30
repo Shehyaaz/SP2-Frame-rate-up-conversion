@@ -1,0 +1,10 @@
+Interpolated frame in :18386 milliseconds 
+Interpolated frame in :26409 milliseconds 
+Interpolated frame in :27367 milliseconds 
+Interpolated frame in :20735 milliseconds 
+Interpolated frame in :20323 milliseconds 
+Interpolated frame in :23199 milliseconds 
+Interpolated frame in :21219 milliseconds 
+Interpolated frame in :19371 milliseconds 
+Interpolated frame in :19241 milliseconds 
+Interpolated frame in :19627 milliseconds 
