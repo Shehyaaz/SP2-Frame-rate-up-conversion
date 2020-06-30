@@ -7,7 +7,7 @@
 
 #include "opencv_methods.hpp"
 
-static void magSpectrums(InputArray _src, OutputArray _dst)
+void magSpectrums(InputArray _src, OutputArray _dst)
 {
     Mat src = _src.getMat();
     int depth = src.depth(), cn = src.channels(), type = src.type();
@@ -123,7 +123,7 @@ static void magSpectrums(InputArray _src, OutputArray _dst)
     }
 }
 
-static void divSpectrums(InputArray _srcA, InputArray _srcB, OutputArray _dst, int flags, bool conjB)
+void divSpectrums(InputArray _srcA, InputArray _srcB, OutputArray _dst, int flags, bool conjB)
 {
     Mat srcA = _srcA.getMat(), srcB = _srcB.getMat();
     int depth = srcA.depth(), cn = srcA.channels(), type = srcA.type();
@@ -320,7 +320,7 @@ static void divSpectrums(InputArray _srcA, InputArray _srcB, OutputArray _dst, i
     }
 }
 
-static void fftShift(InputOutputArray _out)
+void fftShift(InputOutputArray _out)
 {
     Mat out = _out.getMat();
 
@@ -397,7 +397,7 @@ static void fftShift(InputOutputArray _out)
     merge(planes, out);
 }
 
-static Point2d weightedCentroid(InputArray _src, cv::Point peakLocation, cv::Size weightBoxSize, double *response)
+Point2d weightedCentroid(InputArray _src, cv::Point peakLocation, cv::Size weightBoxSize, double *response)
 {
     Mat src = _src.getMat();
 
