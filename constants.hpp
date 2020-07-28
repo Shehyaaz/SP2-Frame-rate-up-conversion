@@ -35,4 +35,7 @@
 #define NUM_BLOCKS_X 34                        // 1080/BLOCK_SIZE -> 33.75 = 34 (approx.)
 #define NUM_BLOCKS_Y IMAGE_HEIGHT / BLOCK_SIZE // 1920/BLOCK_SIZE -> 60
 
+#define STANDARD_REGION_WIDTH 64
+#define STANDARD_REGION_HEIGHT 128
+
 #endif

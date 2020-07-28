@@ -58,6 +58,7 @@ public:
 };
 
 static const vector<vector<Point2f>> zeroes = vector<vector<Point2f>>(NUM_BLOCKS_Y, vector<Point2f>(NUM_BLOCKS_X, Point2f(0, 0)));
+static const Size stdSize = Size(STANDARD_REGION_WIDTH, STANDARD_REGION_HEIGHT);
 
 #define INTERPOLATED_FRAME_FOLDER "interpolated/frame"
 #define EXEC_TIME_FILE "analysis/execution-time.txt"

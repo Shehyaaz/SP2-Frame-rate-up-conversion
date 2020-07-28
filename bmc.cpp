@@ -171,6 +171,7 @@ void BlockMatchingCorrelation::customisedPhaseCorr(Mat prev, Mat curr)
     vector<Point2f> motionVectorCandidates;
     Mat prev32f, curr32f;
     int num;
+    Mat diff;
     // calculate PPC for each global region
     prevRegions = divideIntoGlobal(prev);
     currRegions = divideIntoGlobal(curr);
@@ -182,6 +183,8 @@ void BlockMatchingCorrelation::customisedPhaseCorr(Mat prev, Mat curr)
         {
             prevRegions[num].convertTo(prev32f, CV_32FC1);
             currRegions[num].convertTo(curr32f, CV_32FC1);
+            resize(prev32f, prev32f, stdSize);
+            resize(curr32f, curr32f, stdSize);
             motionVectorCandidates = phaseCorr(prev32f, curr32f, noArray(), 0);
             globalRegionMV[i][j] = motionVectorCandidates;
             /* This is the same as :
@@ -202,12 +205,24 @@ void BlockMatchingCorrelation::customisedPhaseCorr(Mat prev, Mat curr)
         {
             prevRegions[num].convertTo(prev32f, CV_32FC1);
             currRegions[num].convertTo(curr32f, CV_32FC1);
-            motionVectorCandidates = phaseCorr(prev32f, curr32f, noArray(), 0);
-            localRegionMV[i][j] = motionVectorCandidates;
-            /* This is the same as :
+            resize(prev32f, prev32f, stdSize);
+            resize(curr32f, curr32f, stdSize);
+
+            absdiff(prev32f, curr32f, diff);
+            if (countNonZero(diff) == 0) // both regions are equal
+            {
+                localRegionMV[i][j][0] = Point2f(0, 0);
+                localRegionMV[i][j][1] = Point2f(0, 0);
+            }
+            else
+            {
+                motionVectorCandidates = phaseCorr(prev32f, curr32f, noArray(), 0);
+                localRegionMV[i][j] = motionVectorCandidates;
+                /* This is the same as :
             localRegionMV[i][j][0] = motionVectorCandidates[0];
             localRegionMV[i][j][1] = motionVectorCandidates[1];
             */
+            }
             num++;
         }
     }
@@ -216,12 +231,21 @@ void BlockMatchingCorrelation::customisedPhaseCorr(Mat prev, Mat curr)
 Mat BlockMatchingCorrelation::BMC(Mat prev, Mat curr)
 {
     /* this algorithm determines the motion vector for each block */
+    Mat img1, img2, lumI1, lumI2;
+    vector<Mat> lum1, lum2;
+
+    cvtColor(prev, img1, COLOR_BGR2YCrCb);
+    cvtColor(curr, img2, COLOR_BGR2YCrCb);
+    split(img1, lum1);
+    split(img2, lum2);
+    lumI1 = lum1[0];
+    lumI2 = lum2[0];
 
     /*---------- Customised Phase Plane Correlation (CPPC) ---------*/
-    customisedPhaseCorr(prev, curr);
+    customisedPhaseCorr(lumI1, lumI2);
     cout << "before BM\t";
     /*---------- Block Matching ----------*/
-    blockMatching(prev, curr);
+    blockMatching(lumI1, lumI2);
 
     cout << "before interpolation\t";
 
@@ -237,7 +261,6 @@ void BlockMatchingCorrelation::interpolate()
 {
     images = readImg(); // vector of all images in grayscale
     ofstream execFile(EXEC_TIME_FILE, ios_base::app);
-    Mat colorImg;
 
     for (int i = 0; i < images.size() - 1; i++)
     {
@@ -256,7 +279,6 @@ void BlockMatchingCorrelation::interpolate()
     // save all interpolated frames
     for (int i = 0; i < images.size(); i++)
     {
-        cvtColor(images[i], colorImg, COLOR_GRAY2RGB);
-        imwrite(INTERPOLATED_FRAME_FOLDER + to_string((i + 1)) + ".jpg", colorImg);
+        imwrite(INTERPOLATED_FRAME_FOLDER + to_string((i + 1)) + ".jpg", images[i]);
     }
 }

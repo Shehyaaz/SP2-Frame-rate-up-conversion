@@ -27,10 +27,10 @@ vector<Mat> readImg()
     vector<Mat> images;
     glob("video/*.jpg", fn, false);
 
-    size_t count = fn.size();          //number of jpg files in video folder
-    for (size_t i = 0; i < 20; i += 2) // skipping alternate files, which will be interpolated
+    size_t count = fn.size();         //number of jpg files in video folder
+    for (size_t i = 0; i < 3; i += 2) // skipping alternate files, which will be interpolated
     {
-        Mat img = imread(fn[i], IMREAD_GRAYSCALE);
+        Mat img = imread(fn[i]);
         if (!img.data)
         {
             cout << "Could not open or find the image" << std::endl;

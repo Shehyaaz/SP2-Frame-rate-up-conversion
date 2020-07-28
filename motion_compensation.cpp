@@ -15,7 +15,6 @@ using namespace std;
 Mat bidirectionalMotionCompensation(vector<vector<Mat>> &prevBlocks, Mat curr, vector<vector<Point2f>> &prevBlocksMV)
 {
     // creates the interpolated frame using bidirectional motion compensation
-    CV_Assert(curr.type() == CV_8U);
     Mat interpolatedFrame, currRegion(Size(BLOCK_SIZE, BLOCK_SIZE), CV_8U);
     int x, y;   // for accessing pixels in the x and y directions respectively
     int dx, dy; // for accessing motion vector components
@@ -59,8 +58,7 @@ Mat bidirectionalMotionCompensation(vector<vector<Mat>> &prevBlocks, Mat curr, v
         }
     }
 
-    // convert interpolatedFrame to an rbg image, reduce it to the original size, and return
-    cvtColor(interpolatedFrame, interpolatedFrame, COLOR_GRAY2RGB);
+    // reduce interpolatedFrame to the original size, and return
     resize(interpolatedFrame, interpolatedFrame, Size(interpolatedFrame.cols * 0.5, interpolatedFrame.rows * 0.5), 0, 0, INTER_AREA);
     return interpolatedFrame;
 }
