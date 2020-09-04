@@ -12,7 +12,8 @@ int main(int argc, char **argv)
 {
     BlockMatchingCorrelation bmcObj = BlockMatchingCorrelation();
     bmcObj.interpolate();
-    // calcuate the results and store
+    // calculating frame quality
+    cout << "\nCalculating Frame Quality....\n";
     calcQuality();
     return 0;
 }

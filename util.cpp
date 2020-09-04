@@ -20,33 +20,43 @@
 using namespace cv;
 using namespace std;
 
-vector<Mat> readImg()
+vector<UMat> readFrames(String videoFile)
 {
     /* reads the images from the video folder */
-    vector<cv::String> fn;
-    vector<Mat> images;
-    glob("video/*.jpg", fn, false);
-
-    size_t count = fn.size();         //number of jpg files in video folder
-    for (size_t i = 0; i < 3; i += 2) // skipping alternate files, which will be interpolated
+    vector<UMat> frames;
+    VideoCapture cap(videoFile);
+    // check if video opened successfully
+    if (!cap.isOpened())
     {
-        Mat img = imread(fn[i]);
-        if (!img.data)
-        {
-            cout << "Could not open or find the image" << std::endl;
-            exit(-1);
-        }
-        images.push_back(img);
+        cout << "Error opening video stream or file" << endl;
+        exit(-1);
     }
-    return images;
+
+    while (1)
+    {
+        UMat fr;
+        cap >> fr;
+        // If the frame is empty, break immediately
+        if (fr.empty())
+            break;
+
+        frames.push_back(fr);
+        // Press  ESC on keyboard to  exit
+        char c = (char)waitKey(1);
+        if (c == 27)
+            break;
+    }
+    // release the video
+    cap.release();
+    return frames;
 }
 
 vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response = 0)
 {
     /* performs customised phase plane correlation on the input frames */
-    Mat src1 = _src1.getMat();
-    Mat src2 = _src2.getMat();
-    Mat window = _window.getMat();
+    UMat src1 = _src1.getMat().getUMat(ACCESS_WRITE);
+    UMat src2 = _src2.getMat().getUMat(ACCESS_WRITE);
+    UMat window = _window.getMat().getUMat(ACCESS_WRITE);
 
     CV_Assert(src1.type() == src2.type());
     CV_Assert(src1.type() == CV_32FC1 || src1.type() == CV_64FC1);
@@ -61,7 +71,7 @@ vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window
     int M = getOptimalDFTSize(src1.rows);
     int N = getOptimalDFTSize(src1.cols);
 
-    Mat padded1, padded2, paddedWin;
+    UMat padded1, padded2, paddedWin;
 
     if (M != src1.rows || N != src1.cols)
     {
@@ -80,7 +90,7 @@ vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window
         paddedWin = window;
     }
 
-    Mat FFT1, FFT2, P, Pm, C;
+    UMat FFT1, FFT2, P, Pm, C;
 
     // perform window multiplication if available
     if (!paddedWin.empty())
@@ -112,8 +122,8 @@ vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window
     // get the phase shift with sub-pixel accuracy, 5x5 window seems about right here...
     Point2f t1, t2;
     t1 = weightedCentroid(C, peakLoc, Size(5, 5), response);
-    C.at<float>(peakLoc) = 0;                 // set the value at peakLoc to 0
-    minMaxLoc(C, NULL, NULL, NULL, &peakLoc); // find second peakLoc
+    C.getMat(ACCESS_WRITE).at<float>(peakLoc) = 0; // set the value at peakLoc to 0
+    minMaxLoc(C, NULL, NULL, NULL, &peakLoc);      // find second peakLoc
     t2 = weightedCentroid(C, peakLoc, Size(5, 5), response);
 
     // max response is M*N (not exactly, might be slightly larger due to rounding errors)
@@ -126,26 +136,22 @@ vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window
     return {(center - t1), (center - t2)};
 }
 
-float calcSAD(Mat prevBlock, int rowpos, int colpos, Mat curr, float dx, float dy)
+float calcSAD(UMat prevBlock, int rowpos, int colpos, UMat curr, float dx, float dy)
 {
     CV_Assert(prevBlock.type() == curr.type());
     CV_Assert(prevBlock.type() == CV_32FC1 || prevBlock.type() == CV_64FC1);
 
+    UMat currBlock, absDiff;
     float SAD = 0.0; // to store SAD value
-    int y = rowpos * BLOCK_SIZE;
-    int x = colpos * BLOCK_SIZE;
     int dx_int = (int)round(dx);
     int dy_int = (int)round(dy);
-    for (int i = 0; i < prevBlock.rows; i++) // or i < BLOCK_SIZE
-    {
-        for (int j = 0; j < prevBlock.cols; j++) // or j < BLOCK_SIZE
-        {
-            if ((i + y + dy_int) < 0 || (i + y + dy_int) >= curr.rows || (j + x + dx_int) < 0 || (j + x + dx_int) >= curr.cols)
-                SAD += prevBlock.at<float>(i, j);
-            else
-                SAD += abs(prevBlock.at<float>(i, j) - curr.at<float>((i + y + dy_int), (j + x + dx_int)));
-        }
-    }
+    int x = colpos * BLOCK_SIZE;
+    int y = rowpos * BLOCK_SIZE;
+
+    currBlock = getPaddedROI(curr, x + dx_int, y + dy_int, BLOCK_SIZE, BLOCK_SIZE, Scalar(0.0));
+    absdiff(prevBlock, currBlock, absDiff); // absDiff = prevBlock - currBlock
+    SAD = sum(absDiff)[0];
+
     return SAD;
 }
 
@@ -210,6 +216,52 @@ void writeToFile(ofstream &file, chrono::milliseconds duration)
         exit(-1);
     }
     file << "Interpolated frame in :" << duration.count() << " milliseconds \n";
+}
+
+UMat getPaddedROI(const UMat &input, int top_left_x, int top_left_y, int width, int height, Scalar paddingColor)
+{
+    int bottom_right_x = top_left_x + width;
+    int bottom_right_y = top_left_y + height;
+
+    UMat output;
+    if (top_left_x < 0 || top_left_y < 0 || bottom_right_x > input.cols || bottom_right_y > input.rows)
+    {
+        // border padding will be required
+        int border_left = 0, border_right = 0, border_top = 0, border_bottom = 0;
+
+        if (top_left_x < 0)
+        {
+            width = width + top_left_x;
+            border_left = -1 * top_left_x;
+            top_left_x = 0;
+        }
+        if (top_left_y < 0)
+        {
+            height = height + top_left_y;
+            border_top = -1 * top_left_y;
+            top_left_y = 0;
+        }
+        if (bottom_right_x > input.cols)
+        {
+            width = width - (bottom_right_x - input.cols);
+            border_right = bottom_right_x - input.cols;
+        }
+        if (bottom_right_y > input.rows)
+        {
+            height = height - (bottom_right_y - input.rows);
+            border_bottom = bottom_right_y - input.rows;
+        }
+
+        Rect R(top_left_x, top_left_y, width, height);
+        copyMakeBorder(input(R), output, border_top, border_bottom, border_left, border_right, BORDER_CONSTANT, paddingColor);
+    }
+    else
+    {
+        // no border padding required
+        Rect R(top_left_x, top_left_y, width, height);
+        output = input(R);
+    }
+    return output;
 }
 
 /*

@@ -21,11 +21,11 @@
 using namespace cv;
 using namespace std;
 
-vector<Mat> readImg();
+vector<UMat> readFrames(String videoFile);
 vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response);
-float calcSAD(Mat prevBlock, int rowpos, int colpos, Mat curr, float dx, float dy);
+float calcSAD(UMat prevBlock, int rowpos, int colpos, UMat curr, float dx, float dy);
 Point2f medianNeighbor(int rowpos, int colpos, vector<vector<Point2f>> &prevBlockMV);
-
+UMat getPaddedROI(const UMat &input, int top_left_x, int top_left_y, int width, int height, Scalar paddingColor);
 void writeToFile(ofstream &file, chrono::milliseconds duration);
 
 #endif

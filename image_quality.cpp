@@ -14,7 +14,7 @@
 
 #include "image_quality.hpp"
 
-double getPSNR(const Mat &I1, const Mat &I2)
+double getPSNR(const UMat &I1, const UMat &I2)
 {
     Mat s1;
     absdiff(I1, I2, s1);      // |I1 - I2|
@@ -35,7 +35,7 @@ double getPSNR(const Mat &I1, const Mat &I2)
     }
 }
 
-Scalar getMSSIM(const Mat &i1, const Mat &i2)
+Scalar getMSSIM(const UMat &i1, const UMat &i2)
 {
     const double C1 = 6.5025, C2 = 58.5225;
     /***************************** INITS **********************************/
@@ -62,23 +62,24 @@ Scalar getMSSIM(const Mat &i1, const Mat &i2)
     Mat sigma1_2, sigma2_2, sigma12;
 
     GaussianBlur(I1_2, sigma1_2, Size(11, 11), 1.5);
-    sigma1_2 -= mu1_2;
+    subtract(sigma1_2, mu1_2, sigma1_2); // sigma1_2 -= mu1_2;
 
     GaussianBlur(I2_2, sigma2_2, Size(11, 11), 1.5);
-    sigma2_2 -= mu2_2;
+    subtract(sigma2_2, mu2_2, sigma2_2); // sigma2_2 -= mu2_2;
 
     GaussianBlur(I1_I2, sigma12, Size(11, 11), 1.5);
-    sigma12 -= mu1_mu2;
+    subtract(sigma12, mu1_mu2, sigma12); // sigma12 -= mu1_mu2;
 
     ///////////////////////////////// FORMULA ////////////////////////////////
     Mat t1, t2, t3;
+    add(mu1_mu2.mul(2), C1, t1); // // t1 = 2 * mu1_mu2 + C1;
+    add(sigma12.mul(2), C2, t2); // t2 = 2 * sigma12 + C2;
+    t3 = t1.mul(t2);             // t3 = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))
 
-    t1 = 2 * mu1_mu2 + C1;
-    t2 = 2 * sigma12 + C2;
-    t3 = t1.mul(t2); // t3 = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))
-
-    t1 = mu1_2 + mu2_2 + C1;
-    t2 = sigma1_2 + sigma2_2 + C2;
+    add(mu1_2, mu2_2, t1);
+    add(t1, C1, t1); //t1 = mu1_2 + mu2_2 + C1;
+    add(sigma1_2, sigma2_2, t2);
+    add(t2, C2, t2); // t2 = sigma1_2 + sigma2_2 + C2;
     t1 = t1.mul(t2); // t1 =((mu1_2 + mu2_2 + C1).*(sigma1_2 + sigma2_2 + C2))
 
     Mat ssim_map;
@@ -104,54 +105,55 @@ void writeValuesToFile(ofstream &resFile, int frameNo, double psnr, Scalar mssim
 
 void calcQuality()
 {
-    vector<cv::String> fn1, fn2;
-    vector<Mat> interpolatedImages, originalImages;
-    Mat img;
+    // To be changed
+    vector<UMat> interpolatedFrames, originalFrames;
     size_t count;
     double psnr;
     Scalar mssim;
+    // reading original frames
+    originalFrames = readFrames(INPUT_VIDEO);
     // reading interpolated frames
-    glob("interpolated/*.jpg", fn1, false);
-    count = fn1.size();
-    for (size_t i = 0; i < count; i++)
-    {
-        img = imread(fn1[i], IMREAD_GRAYSCALE);
-        if (!img.data)
-        {
-            cout << "Could not open or find the image" << std::endl;
-            exit(-1);
-        }
-        interpolatedImages.push_back(img);
-    }
+    interpolatedFrames = readFrames(INTERPOLATED_VIDEO);
 
-    // reading actual frames
-    glob("video/*.jpg", fn2, false);
-    count = fn2.size();
-    for (size_t i = 1; i < 20; i += 2)
-    {
-        img = imread(fn2[i], IMREAD_GRAYSCALE);
-        if (!img.data)
-        {
-            cout << "Could not open or find the image" << std::endl;
-            exit(-1);
-        }
-        originalImages.push_back(img);
-    }
+    // for (size_t i = 1; i < count; i+=2)
+    // {
+    //     img = imread(fn1[i], IMREAD_GRAYSCALE);
+    //     if (!img.data)
+    //     {
+    //         cout << "Could not open or find the image" << std::endl;
+    //         exit(-1);
+    //     }
+    //     interpolatedImages.push_back(img);
+    // }
+
+    // // reading actual frames
+    // glob("video/*.jpg", fn2, false);
+    // count = fn2.size();
+    // for (size_t i = 1; i < 20; i += 2)
+    // {
+    //     img = imread(fn2[i], IMREAD_GRAYSCALE);
+    //     if (!img.data)
+    //     {
+    //         cout << "Could not open or find the image" << std::endl;
+    //         exit(-1);
+    //     }
+    //     originalImages.push_back(img);
+    // }
 
     // performing analysis and storing the result
-    if (interpolatedImages.size() != originalImages.size())
+    if (interpolatedFrames.size() != originalFrames.size())
     {
         cout << "Number of images is different\n";
         exit(-1);
     }
-    count = interpolatedImages.size();
+    count = originalFrames.size();
     // open file
     ofstream resFile(ANALYSIS_FILE, ios_base::app);
     resFile << "Frame   \t\tPSNR      \t\tSSIM\n";
-    for (size_t i = 0; i < count; i++)
+    for (size_t i = 1; i < count - 1; i += 2)
     {
-        psnr = getPSNR(interpolatedImages[i], originalImages[i]);
-        mssim = getMSSIM(interpolatedImages[i], originalImages[i]);
+        psnr = getPSNR(interpolatedFrames[i], originalFrames[i]);
+        mssim = getMSSIM(interpolatedFrames[i], originalFrames[i]);
         writeValuesToFile(resFile, i + 1, psnr, mssim);
     }
     resFile.close();

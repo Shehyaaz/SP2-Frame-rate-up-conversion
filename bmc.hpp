@@ -29,8 +29,8 @@ using namespace std;
 class BlockMatchingCorrelation
 {
     // variable declarations
-    vector<Mat> images;
-    vector<Mat> interpolated;
+    vector<UMat> frames;
+    vector<UMat> interpolated;
     vector<vector<vector<Point2f>>> globalRegionMV;
     vector<vector<vector<Point2f>>> localRegionMV;
     vector<vector<Point2f>> prevBlockMV;
@@ -48,19 +48,19 @@ public:
         // initialization of variables
     }
 
-    vector<Mat> divideIntoGlobal(Mat inpImg);
-    vector<Mat> divideIntoLocal(Mat inpImg);
-    vector<vector<Mat>> divideIntoBlocks(Mat inpImg);
-    void customisedPhaseCorr(Mat prev, Mat curr);
-    void blockMatching(Mat prev, Mat curr);
-    Mat BMC(Mat prev, Mat curr);
+    vector<UMat> divideIntoGlobal(UMat inpFrame);
+    vector<UMat> divideIntoLocal(UMat inpFrame);
+    vector<vector<UMat>> divideIntoBlocks(UMat inpFrame);
+    void customisedPhaseCorr(UMat prev, UMat curr);
+    void blockMatching(UMat prev, UMat curr);
+    UMat BMC(UMat prev, UMat curr);
     void interpolate();
 };
 
 static const vector<vector<Point2f>> zeroes = vector<vector<Point2f>>(NUM_BLOCKS_Y, vector<Point2f>(NUM_BLOCKS_X, Point2f(0, 0)));
 static const Size stdSize = Size(STANDARD_REGION_WIDTH, STANDARD_REGION_HEIGHT);
 
-#define INTERPOLATED_FRAME_FOLDER "interpolated/frame"
+// #define INTERPOLATED_FRAME_FOLDER "interpolated/frame"
 #define EXEC_TIME_FILE "analysis/execution-time.txt"
 
 #endif
