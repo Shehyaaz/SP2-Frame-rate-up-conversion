@@ -16,6 +16,6 @@
 using namespace cv;
 using namespace std;
 
-UMat bidirectionalMotionCompensation(vector<vector<UMat>> &prevBlocks, UMat curr, vector<vector<Point2f>> &prevBlocksMV);
+void bidirectionalMotionCompensation(const vector<vector<UMat>> &prevBlocks, const UMat &curr, const vector<vector<Point2f>> &prevBlocksMV, UMat &newFrame);
 
 #endif

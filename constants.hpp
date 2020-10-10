@@ -11,7 +11,7 @@
 
 #define FRAME_WIDTH 1920
 #define FRAME_HEIGHT 1080
-#define UPCONVERTED_FRAME_RATE 60
+#define UPCONVERTED_FRAME_RATE 60.0
 // for gloabl region
 #define GR_WIDTH 1024
 #define GR_HEIGHT 512

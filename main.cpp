@@ -6,15 +6,11 @@
 */
 
 #include "bmc.hpp"
-#include "image_quality.hpp"
 
 int main(int argc, char **argv)
 {
     BlockMatchingCorrelation bmcObj = BlockMatchingCorrelation();
     bmcObj.interpolate();
-    // calculating frame quality
-    cout << "\nCalculating Frame Quality....\n";
-    calcQuality();
     return 0;
 }
 /*

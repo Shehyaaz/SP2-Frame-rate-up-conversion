@@ -20,10 +20,9 @@
 using namespace cv;
 using namespace std;
 
-vector<UMat> readFrames(String videoFile)
+void readFrames(String videoFile, vector<UMat> &frames)
 {
     /* reads the images from the video folder */
-    vector<UMat> frames;
     VideoCapture cap(videoFile);
     // check if video opened successfully
     if (!cap.isOpened())
@@ -48,7 +47,6 @@ vector<UMat> readFrames(String videoFile)
     }
     // release the video
     cap.release();
-    return frames;
 }
 
 vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response = 0)
@@ -136,7 +134,7 @@ vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window
     return {(center - t1), (center - t2)};
 }
 
-float calcSAD(UMat prevBlock, int rowpos, int colpos, UMat curr, float dx, float dy)
+float calcSAD(const UMat &prevBlock, int rowpos, int colpos, const UMat &curr, float dx, float dy)
 {
     CV_Assert(prevBlock.type() == curr.type());
     CV_Assert(prevBlock.type() == CV_32FC1 || prevBlock.type() == CV_64FC1);
@@ -148,7 +146,7 @@ float calcSAD(UMat prevBlock, int rowpos, int colpos, UMat curr, float dx, float
     int x = colpos * BLOCK_SIZE;
     int y = rowpos * BLOCK_SIZE;
 
-    currBlock = getPaddedROI(curr, x + dx_int, y + dy_int, BLOCK_SIZE, BLOCK_SIZE, Scalar(0.0));
+    currBlock = getPaddedROI(curr, x + dx_int, y + dy_int, BLOCK_SIZE, BLOCK_SIZE);
     absdiff(prevBlock, currBlock, absDiff); // absDiff = prevBlock - currBlock
     SAD = sum(absDiff)[0];
 
