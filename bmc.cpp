@@ -241,13 +241,13 @@ void BlockMatchingCorrelation::interpolate()
     ofstream execFile(EXEC_TIME_FILE, ios_base::app);
 
     newFrames.push_back(frames[0]);
-    for (int i = 0; i < frames.size() - 2; i += 2)
+    for (int i = 0; i < frames.size() - 1; i += 1)
     {
         auto start = chrono::high_resolution_clock::now();
 
-        BMC(frames[i], frames[i + 2], interpolatedFrame);
+        BMC(frames[i], frames[i + 1], interpolatedFrame);
         newFrames.push_back(interpolatedFrame); // considering alternate frames for now
-        newFrames.push_back(frames[i + 2]);
+        newFrames.push_back(frames[i + 1]);
 
         auto stop = chrono::high_resolution_clock::now();
         auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
