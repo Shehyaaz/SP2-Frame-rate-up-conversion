@@ -19,26 +19,50 @@ void bidirectionalMotionCompensation(const vector<vector<UMat>> &prevBlocks, con
     UMat interpolatedRegion(Size(BLOCK_SIZE, BLOCK_SIZE), CV_8UC3), currRegion(Size(BLOCK_SIZE, BLOCK_SIZE), CV_8UC3);
     int x, y;   // for accessing pixels in the x and y directions respectively
     int dx, dy; // for accessing motion vector components
+    int i = 0,j = 0; // for accessing prevBlocks MVs
 
-    newFrame = UMat::zeros(Size(FRAME_WIDTH * 2, FRAME_HEIGHT * 2), CV_8UC3); // create an empty frame initially
-
-    for (int i = 0; i < prevBlocks.size(); i++)
+    //newFrame = UMat::zeros(Size(FRAME_WIDTH * 2, FRAME_HEIGHT * 2), CV_8UC3); // create an empty frame initially
+	//UMat frame = UMat::zeros(Size(FRAME_WIDTH, FRAME_HEIGHT), CV_8UC3);
+	// adding 10% padding to the newFrame
+    //copyMakeBorder( frame, newFrame, BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, BORDER_CONSTANT);
+    newFrame = UMat::zeros(Size(FRAME_WIDTH, FRAME_HEIGHT), CV_8UC3); // create an empty frame initially
+    
+    for ( y = 0; y < curr.rows - BLOCK_SIZE; y += BLOCK_SIZE)
     {
-        for (int j = 0; j < prevBlocks[i].size(); j++)
+    	j = 0;
+        for ( x = 0; x < curr.cols; x += BLOCK_SIZE)
         {
             // for each block in prevBlock, determine the block in the next frame
             // currRegion has the block corresponding to prevRegions[i][j]
-            x = BLOCK_SIZE * j; // column
-            y = BLOCK_SIZE * i; // row
             dx = (int)round(prevBlocksMV[i][j].x);
             dy = (int)round(prevBlocksMV[i][j].y);
-
-            currRegion = getPaddedROI(curr, x + dx, y + dy, BLOCK_SIZE, BLOCK_SIZE);
-
+            if ( !(x + dx >= curr.cols || x + dx <= -1*BLOCK_SIZE || y + dy >= curr.rows || y + dy <= -1*BLOCK_SIZE) )
+            {
+            	currRegion = getPaddedROI(curr, x + dx, y + dy, BLOCK_SIZE, BLOCK_SIZE);
+            }
             // determining the interpolateRegion and interpolatedFrame
             addWeighted(prevBlocks[i][j], 0.5, currRegion, 0.5, 0.0, interpolatedRegion); // interpolatedRegion = 0.5*prevBlocks[i][j] + 0.5*currRegion
             interpolatedRegion.copyTo(newFrame(Rect(x, y, BLOCK_SIZE, BLOCK_SIZE)));
+            j++;
         }
+        i++;
     }
-    newFrame = newFrame(Rect(0, 0, FRAME_WIDTH, FRAME_HEIGHT));
+    j = 0;
+    i = NUM_BLOCKS_Y - 1;
+    y = curr.rows - BLOCK_SIZE;
+    for ( x = 0; x < curr.cols; x += BLOCK_SIZE)
+    {
+    		dx = (int)round(prevBlocksMV[i][j].x);
+            dy = (int)round(prevBlocksMV[i][j].y);
+			if ( !(x + dx >= curr.cols || x + dx <= -1*BLOCK_SIZE || y + dy >= curr.rows || y + dy <= -1*BLOCK_SIZE))
+            {
+            	currRegion = getPaddedROI(curr, x + dx, y + dy, BLOCK_SIZE, BLOCK_SIZE);
+            }
+            // determining the interpolateRegion and interpolatedFrame
+            addWeighted(prevBlocks[i][j], 0.5, currRegion, 0.5, 0.0, interpolatedRegion); // interpolatedRegion = 0.5*prevBlocks[i][j] + 0.5*currRegion
+            interpolatedRegion.copyTo(newFrame(Rect(x, y, BLOCK_SIZE, BLOCK_SIZE)));
+            j++;
+    }
+    //cout<<"Frame size :"<<newFrame.rows<<","<<newFrame.cols<<endl;
+    //newFrame = newFrame(Rect(0, 0, FRAME_WIDTH, FRAME_HEIGHT));
 }

@@ -145,11 +145,19 @@ float calcSAD(const UMat &prevBlock, int rowpos, int colpos, const UMat &curr, f
     int dy_int = (int)round(dy);
     int x = colpos * BLOCK_SIZE;
     int y = rowpos * BLOCK_SIZE;
-
-    currBlock = getPaddedROI(curr, x + dx_int, y + dy_int, BLOCK_SIZE, BLOCK_SIZE);
-    absdiff(prevBlock, currBlock, absDiff); // absDiff = prevBlock - currBlock
-    SAD = sum(absDiff)[0];
-
+    if (y > curr.rows - BLOCK_SIZE && y < curr.rows)
+    {
+     	y = curr.rows - BLOCK_SIZE;
+    }
+    if(x+dx_int >= curr.cols || y+dy_int >= curr.rows || x+dx_int <= -1*BLOCK_SIZE || y+dy_int <= -1*BLOCK_SIZE)
+    {
+    	SAD = sum(prevBlock)[0];
+    }
+    else{
+    	currBlock = getPaddedROI(curr, x+dx_int, y+dy_int, BLOCK_SIZE, BLOCK_SIZE);
+    	absdiff(prevBlock, currBlock, absDiff); // absDiff = prevBlock - currBlock
+    	SAD = sum(absDiff)[0];
+    }
     return SAD;
 }
 
@@ -218,6 +226,8 @@ void writeToFile(ofstream &file, chrono::milliseconds duration)
 
 UMat getPaddedROI(const UMat &input, int top_left_x, int top_left_y, int width, int height, Scalar paddingColor)
 {
+    //cout << "\n My inputs are top_left_x = " << top_left_x << " top_left_y = " << top_left_y << " width = " << width << " height = " << height << "\n";
+    //int w = width, h = height;
     int bottom_right_x = top_left_x + width;
     int bottom_right_y = top_left_y + height;
 
@@ -249,7 +259,13 @@ UMat getPaddedROI(const UMat &input, int top_left_x, int top_left_y, int width, 
             height = height - (bottom_right_y - input.rows);
             border_bottom = bottom_right_y - input.rows;
         }
-
+        /*if (width < 0 || height < 0)
+        {
+        	//cout << "Before death X is " << top_left_x << " Y is " << top_left_y << " width is " << width << " and height is : " << height << endl;
+        	output = UMat(Size(w, h), input.type());
+        	return output;
+        }*/
+       	
         Rect R(top_left_x, top_left_y, width, height);
         copyMakeBorder(input(R), output, border_top, border_bottom, border_left, border_right, BORDER_CONSTANT, paddingColor);
     }
