@@ -21,7 +21,8 @@
 using namespace cv;
 using namespace std;
 
-void readFrames(String videoFile, vector<UMat> &frames);
+float getInputFPS(const String &videoFile);
+void readFrames(const String &videoFile, vector<UMat> &frames);
 vector<Point2f> phaseCorr(InputArray _src1, InputArray _src2, InputArray _window, double *response);
 float calcSAD(const UMat &prevBlock, int rowpos, int colpos, const UMat &curr, float dx, float dy);
 Point2f medianNeighbor(int rowpos, int colpos, vector<vector<Point2f>> &prevBlockMV);

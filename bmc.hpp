@@ -29,6 +29,7 @@ using namespace std;
 class BlockMatchingCorrelation
 {
     // variable declarations
+    String inputVideo;
     vector<UMat> frames;
     vector<vector<vector<Point2f>>> globalRegionMV;
     vector<vector<vector<Point2f>>> localRegionMV;
@@ -37,7 +38,7 @@ class BlockMatchingCorrelation
 
 public:
     // function declarations
-    BlockMatchingCorrelation()
+    BlockMatchingCorrelation(const String &inputVideo)
         : globalRegionMV(NUM_GR_Y, vector<vector<Point2f>>(NUM_GR_X, vector<Point2f>(2, Point2f(0, 0)))),
           localRegionMV(NUM_LR_Y, vector<vector<Point2f>>(NUM_LR_X, vector<Point2f>(2, Point2f(0, 0)))),
           prevBlockMV(NUM_BLOCKS_Y, vector<Point2f>(NUM_BLOCKS_X, Point2f(0, 0))),
@@ -45,6 +46,7 @@ public:
 
     {
         // initialization of variables
+        this->inputVideo = inputVideo;
     }
 
     void divideIntoGlobal(const UMat &inpFrame, vector<UMat> &globalRegions);

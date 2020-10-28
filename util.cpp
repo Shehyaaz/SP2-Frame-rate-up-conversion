@@ -20,9 +20,8 @@
 using namespace cv;
 using namespace std;
 
-void readFrames(String videoFile, vector<UMat> &frames)
+float getInputFPS(const String &videoFile)
 {
-    /* reads the images from the video folder */
     VideoCapture cap(videoFile);
     // check if video opened successfully
     if (!cap.isOpened())
@@ -30,6 +29,21 @@ void readFrames(String videoFile, vector<UMat> &frames)
         cout << "Error opening video stream or file" << endl;
         exit(-1);
     }
+    return (float)cap.get(CAP_PROP_FPS);
+}
+void readFrames(const String &videoFile, vector<UMat> &frames)
+{
+    /* reads the images from the video folder */
+    VideoCapture cap(videoFile);
+    bool HD = true;
+    // check if video opened successfully
+    if (!cap.isOpened())
+    {
+        cout << "Error opening video stream or file" << endl;
+        exit(-1);
+    }
+    if (cap.get(CAP_PROP_FRAME_WIDTH) != FRAME_WIDTH || cap.get(CAP_PROP_FRAME_HEIGHT) != FRAME_HEIGHT)
+        HD = false;
 
     while (1)
     {
@@ -38,7 +52,8 @@ void readFrames(String videoFile, vector<UMat> &frames)
         // If the frame is empty, break immediately
         if (fr.empty())
             break;
-
+        if (!HD)
+            resize(fr, fr, Size(FRAME_WIDTH, FRAME_HEIGHT));
         frames.push_back(fr);
         // Press  ESC on keyboard to  exit
         char c = (char)waitKey(1);
@@ -147,16 +162,17 @@ float calcSAD(const UMat &prevBlock, int rowpos, int colpos, const UMat &curr, f
     int y = rowpos * BLOCK_SIZE;
     if (y > curr.rows - BLOCK_SIZE && y < curr.rows)
     {
-     	y = curr.rows - BLOCK_SIZE;
+        y = curr.rows - BLOCK_SIZE;
     }
-    if(x+dx_int >= curr.cols || y+dy_int >= curr.rows || x+dx_int <= -1*BLOCK_SIZE || y+dy_int <= -1*BLOCK_SIZE)
+    if (x + dx_int >= curr.cols || y + dy_int >= curr.rows || x + dx_int <= -1 * BLOCK_SIZE || y + dy_int <= -1 * BLOCK_SIZE)
     {
-    	SAD = sum(prevBlock)[0];
+        SAD = sum(prevBlock)[0];
     }
-    else{
-    	currBlock = getPaddedROI(curr, x+dx_int, y+dy_int, BLOCK_SIZE, BLOCK_SIZE);
-    	absdiff(prevBlock, currBlock, absDiff); // absDiff = prevBlock - currBlock
-    	SAD = sum(absDiff)[0];
+    else
+    {
+        currBlock = getPaddedROI(curr, x + dx_int, y + dy_int, BLOCK_SIZE, BLOCK_SIZE);
+        absdiff(prevBlock, currBlock, absDiff); // absDiff = prevBlock - currBlock
+        SAD = sum(absDiff)[0];
     }
     return SAD;
 }
@@ -265,7 +281,7 @@ UMat getPaddedROI(const UMat &input, int top_left_x, int top_left_y, int width, 
         	output = UMat(Size(w, h), input.type());
         	return output;
         }*/
-       	
+
         Rect R(top_left_x, top_left_y, width, height);
         copyMakeBorder(input(R), output, border_top, border_bottom, border_left, border_right, BORDER_CONSTANT, paddingColor);
     }

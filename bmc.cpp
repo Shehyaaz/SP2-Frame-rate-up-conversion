@@ -154,17 +154,17 @@ void BlockMatchingCorrelation::customisedPhaseCorr(const UMat &prev, const UMat 
     {
         for (int j = 0; j < NUM_GR_X; j++) //columns
         {
-                prevRegions[num].convertTo(prev32f, CV_32FC1);
-                currRegions[num].convertTo(curr32f, CV_32FC1);
-                resize(prev32f, prev32f, stdSize);
-                resize(curr32f, curr32f, stdSize);
-                motionVectorCandidates = phaseCorr(prev32f, curr32f, noArray(), 0);
-                globalRegionMV[i][j] = motionVectorCandidates;
-                /* This is the same as :
+            prevRegions[num].convertTo(prev32f, CV_32FC1);
+            currRegions[num].convertTo(curr32f, CV_32FC1);
+            resize(prev32f, prev32f, stdSize);
+            resize(curr32f, curr32f, stdSize);
+            motionVectorCandidates = phaseCorr(prev32f, curr32f, noArray(), 0);
+            globalRegionMV[i][j] = motionVectorCandidates;
+            /* This is the same as :
 	            globalRegionMV[i][j][0] = motionVectorCandidates[0];
 	            globalRegionMV[i][j][1] = motionVectorCandidates[1];
 	            */
-                num++;
+            num++;
         }
     }
 
@@ -240,13 +240,13 @@ void BlockMatchingCorrelation::interpolate()
 {
     vector<UMat> newFrames;
     UMat interpolatedFrame;
-
-    readFrames(INPUT_VIDEO, frames); // vector of all frames in the video
+    float newFPS = 2.0 * getInputFPS(inputVideo);
+    readFrames(inputVideo, frames); // vector of all frames in the video
     ofstream execFile(EXEC_TIME_FILE, ios_base::app);
 
     newFrames.push_back(frames[0]);
 
-    for (int i = 0; i < frames.size() - 2; i += 2)
+    for (int i = 0; i < frames.size() - 1; i += 1)
     {
         auto start = chrono::high_resolution_clock::now();
 
@@ -254,16 +254,15 @@ void BlockMatchingCorrelation::interpolate()
         // interpolation eventually getting 60 fps. This will help if you want to compare original
         // 60 fps with your generated 60 fps for comparison
         //cout << "Interpolating between frames : " << i << " and " << i+2 <<endl;
-        BMC(frames[i], frames[i + 2], interpolatedFrame);
-        newFrames.push_back(interpolatedFrame); // considering alternate frames for now
-        newFrames.push_back(frames[i+2]);         // considering alternate frames for now
-        
+        //BMC(frames[i], frames[i + 2], interpolatedFrame);
+        //newFrames.push_back(interpolatedFrame); // considering alternate frames for now
+        //newFrames.push_back(frames[i + 2]);     // considering alternate frames for now
 
         // You have 30 fps video as input and you are trying to get a 60 fps from it
         //cout << "Interpolating between frames : " << i << " and " << i+1 <<endl;
-        //BMC(frames[i], frames[i + 1], interpolatedFrame);
-        //newFrames.push_back(frames[i]); // considering alternate frames for now
-        //newFrames.push_back(interpolatedFrame); // considering alternate frames for now
+        BMC(frames[i], frames[i + 1], interpolatedFrame);
+        newFrames.push_back(frames[i]);         // considering alternate frames for now
+        newFrames.push_back(interpolatedFrame); // considering alternate frames for now
 
         auto stop = chrono::high_resolution_clock::now();
         auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
@@ -276,7 +275,7 @@ void BlockMatchingCorrelation::interpolate()
 
     // create interpolated video
     VideoWriter interpolatedVideo;
-    interpolatedVideo.open(INTERPOLATED_VIDEO, VideoWriter::fourcc('X', 'V', 'I', 'D'), UPCONVERTED_FRAME_RATE, Size(FRAME_WIDTH, FRAME_HEIGHT));
+    interpolatedVideo.open(INTERPOLATED_VIDEO, VideoWriter::fourcc('X', 'V', 'I', 'D'), newFPS, Size(FRAME_WIDTH, FRAME_HEIGHT));
     //cout << "New frame size" << newFrames.size() << endl;
 
     for (auto fr : newFrames) //for (int i = 0; i < 1; i++)
@@ -285,5 +284,5 @@ void BlockMatchingCorrelation::interpolate()
         //waitKey(25);
     }
     interpolatedVideo.release();
-    cout << "...completed the new video" << endl;
+    cout << "...completed the new video\nRelative Path of output video :" << INTERPOLATED_VIDEO << endl;
 }
